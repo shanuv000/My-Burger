@@ -7,7 +7,7 @@ class BurgerIngredients extends Component {
     render() {
         let ingredients = null;
 
-        switch (this.props.type) {
+        switch (this.props.shanu) {
             case ('bread-bottom'):
                 ingredients = <div className={classes.BreadBottom}> </div>;
                 break;
@@ -38,6 +38,6 @@ class BurgerIngredients extends Component {
     }
 }
 
-BurgerIngredients.prototype = {type: PropTypes.string.isRequired};
+BurgerIngredients.Prototype = {type: PropTypes.string.isRequired};
 
 export default BurgerIngredients;
