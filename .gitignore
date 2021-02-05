@@ -5,7 +5,7 @@
 /.pnp
 .pnp.js
 
-# testing
+# testing$ git remote -v
 /coverage
 
 # production
