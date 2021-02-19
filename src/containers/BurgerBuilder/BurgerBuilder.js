@@ -4,6 +4,9 @@ import Burger from "../../components/Burger/Burger";
 import BuildControls from "../../components/Burger/BuidControls/BuildControls";
 import Modal from "../../components/UI/Modal/Modal";
 import OrderSummary from "../../components/Burger/OrderSummary/OrderSummary";
+import axios from '../../axios-orders';
+import Spinner from "../../components/UI/Spinner/Spinner";
+import withErrorHandler from "../../hoc/withErrorHandler/withErrorHandler";
 
 const INGREDIENT_PRICES = {
     salad: 0.5,
@@ -12,6 +15,12 @@ const INGREDIENT_PRICES = {
     meat: 1.3
 }
 
+let today = new Date(),
+
+    time = today.getHours() + ':' + today.getMinutes() + ':' + today.getSeconds() + '  absolute Date : ' +
+        today.getDate() + '-' + (today.getMonth() + 1) + '-' + today.getFullYear();
+
+
 class BurgerBuilder extends Component {
     state = {
         ingredients: {
@@ -19,7 +28,11 @@ class BurgerBuilder extends Component {
             bacon: 0,
             cheese: 0,
             meat: 0
-        }, totalPrice: 4, purchasable: false, purchasing: false
+        }, totalPrice: 4,
+        purchasable: false,
+        purchasing: false,
+        loading: false,
+        currentDateTime: time
     }
 
     updatePurchaseState(ingredients) {
@@ -72,8 +85,28 @@ class BurgerBuilder extends Component {
     purchaseCancelHandler = () => {
         this.setState({purchasing: false})
     }
-purchaseContinueHandler=()=>{
-alert('You Continued :-)')
+    purchaseContinueHandler = () => {
+        this.setState({loading: true})
+        const orders = {
+            ingredients: this.state.ingredients,
+            totalPrice: this.state.totalPrice,
+            currentTime: this.state.currentDateTime,
+            customer: {
+                name: 'American Sinha',
+                address: {
+                    street: 'Kumhrar',
+                    pinCode: 800006,
+                    City: 'Patna',
+                    Country: 'India'
+                },
+                email: 'shanuvatika@gmail.com'
+            }, deliveryPartner: 'eKart',
+            deliveryMode: 'Fast'
+        }
+
+        axios.post('/orders.json', orders)
+            .then(response => this.setState({loading: false, purchasing: false}))
+            .catch(error => this.setState({loading: false, purchasing: false}));
     }
 
     render() {
@@ -84,16 +117,20 @@ alert('You Continued :-)')
         for (let key in disabledInfo) {
             disabledInfo[key] = disabledInfo <= 0;
         }
+        let orderSummary = <OrderSummary ingredients={this.state.ingredients}
+                                         purchaseCancelled={this.purchaseCancelHandler}
+                                         purchaseContinued={this.purchaseContinueHandler}
+                                         totalSum={this.state.totalPrice}
+        />
+        if (this.state.loading) {
+            orderSummary = <Spinner/>
+        }
 
 
         return (
             <Aux>
                 <Modal show={this.state.purchasing} modalClosed={this.purchaseCancelHandler}>
-                    <OrderSummary ingredients={this.state.ingredients}
-                                  purchaseCancelled = {this.purchaseCancelHandler}
-                                  purchaseContinued={this.purchaseContinueHandler}
-                    totalSum={this.state.totalPrice}
-                    />
+                    {orderSummary}
                 </Modal>
 
                 <Burger ingredients={this.state.ingredients}/>
@@ -109,4 +146,4 @@ alert('You Continued :-)')
     }
 }
 
-export default BurgerBuilder;
+export default withErrorHandler(BurgerBuilder, axios);
