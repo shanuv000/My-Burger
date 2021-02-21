@@ -23,16 +23,23 @@ let today = new Date(),
 
 class BurgerBuilder extends Component {
     state = {
-        ingredients: {
-            salad: 0,
-            bacon: 0,
-            cheese: 0,
-            meat: 0
-        }, totalPrice: 4,
+        ingredients: null,
+        totalPrice: 4,
         purchasable: false,
         purchasing: false,
         loading: false,
         currentDateTime: time
+    }
+
+    componentDidMount() {
+        console.log(this.props);
+        axios.get('https://react-my-burger-5f68c-default-rtdb.firebaseio.com/orders/ingredients.json')
+            .then(response => {
+                this.setState({ingredients: response.data});
+
+            }).catch(error => {
+            this.setState({error: true})
+        })
     }
 
     updatePurchaseState(ingredients) {
@@ -86,27 +93,36 @@ class BurgerBuilder extends Component {
         this.setState({purchasing: false})
     }
     purchaseContinueHandler = () => {
-        this.setState({loading: true})
-        const orders = {
-            ingredients: this.state.ingredients,
-            totalPrice: this.state.totalPrice,
-            currentTime: this.state.currentDateTime,
-            customer: {
-                name: 'American Sinha',
-                address: {
-                    street: 'Kumhrar',
-                    pinCode: 800006,
-                    City: 'Patna',
-                    Country: 'India'
-                },
-                email: 'shanuvatika@gmail.com'
-            }, deliveryPartner: 'eKart',
-            deliveryMode: 'Fast'
+        // this.setState({loading: true})
+        // const orders = {
+        //     ingredients: this.state.ingredients,
+        //     totalPrice: this.state.totalPrice,
+        //     currentTime: this.state.currentDateTime,
+        //     customer: {
+        //         name: 'American Sinha',
+        //         address: {
+        //             street: 'Kumhrar',
+        //             pinCode: 800006,
+        //             City: 'Patna',
+        //             Country: 'India'
+        //         },
+        //         email: 'shanuvatika@gmail.com'
+        //     }, deliveryPartner: 'eKart',
+        //     deliveryMode: 'Fast'
+        // }
+        //
+        // axios.post('/orders.json', orders)
+        //     .then(response => this.setState({loading: false, purchasing: false}))
+        //     .catch(error => this.setState({loading: false, purchasing: false}));
+        const queryParams = [];
+        for (let i in this.state.ingredients) {
+            queryParams.push(encodeURIComponent(i) + '=' + encodeURIComponent(this.state.ingredients[i]));
         }
-
-        axios.post('/orders.json', orders)
-            .then(response => this.setState({loading: false, purchasing: false}))
-            .catch(error => this.setState({loading: false, purchasing: false}));
+        const queryString = queryParams.join('&');
+        this.props.history.push({
+            pathname: '/checkout',
+            search: '?'+queryString
+        });
     }
 
     render() {
@@ -117,30 +133,38 @@ class BurgerBuilder extends Component {
         for (let key in disabledInfo) {
             disabledInfo[key] = disabledInfo <= 0;
         }
-        let orderSummary = <OrderSummary ingredients={this.state.ingredients}
+        let orderSummary = null;
+        let burger = this.state.error ? <p>Ingredients can't be loaded</p> : <Spinner/>;
+        if (this.state.ingredients) {
+            burger = (<Aux>
+                    <Burger ingredients={this.state.ingredients}/>
+                    <BuildControls ingredientAdded={this.addIngredientHandler}
+                                   ingredientRemoved={this.removeIngredientHandler}
+                                   disabled={disabledInfo}
+                                   price={this.state.totalPrice}
+                                   purchasable={this.state.purchasable}
+                                   ordered={this.purchaseHandler}
+                    />
+                </Aux>
+            );
+            orderSummary = <OrderSummary ingredients={this.state.ingredients}
                                          purchaseCancelled={this.purchaseCancelHandler}
                                          purchaseContinued={this.purchaseContinueHandler}
                                          totalSum={this.state.totalPrice}
-        />
+            />
+
+        }
         if (this.state.loading) {
             orderSummary = <Spinner/>
         }
-
 
         return (
             <Aux>
                 <Modal show={this.state.purchasing} modalClosed={this.purchaseCancelHandler}>
                     {orderSummary}
-                </Modal>
+                </Modal>{burger}
 
-                <Burger ingredients={this.state.ingredients}/>
-                <BuildControls ingredientAdded={this.addIngredientHandler}
-                               ingredientRemoved={this.removeIngredientHandler}
-                               disabled={disabledInfo}
-                               price={this.state.totalPrice}
-                               purchasable={this.state.purchasable}
-                               ordered={this.purchaseHandler}
-                />
+
             </Aux>
         )
     }
